@@ -53,11 +53,11 @@ export default function Home() {
   }, [loadOverview]);
 
   const handleSaveCost = useCallback(
-    async (sku: string, unitCost: number) => {
+    async (productTitle: string, unitCost: number) => {
       const response = await fetch("/api/inventory-costs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sku, unitCost }),
+        body: JSON.stringify({ productTitle, unitCost }),
       });
       if (!response.ok) {
         throw new Error(`Failed to save cost (status ${response.status})`);
@@ -109,6 +109,7 @@ export default function Home() {
               <MetricCard
                 label="Inventory Value"
                 value={formatCurrency(data.totals.totalInventoryValue)}
+                hint="Included in Net Position"
                 warning={shopifyError}
               />
               <MetricCard
@@ -120,6 +121,7 @@ export default function Home() {
               <MetricCard
                 label="Net Position"
                 value={formatCurrency(data.totals.netPosition)}
+                hint="Cash + Inventory − Liabilities"
                 tone={data.totals.netPosition >= 0 ? "positive" : "negative"}
               />
             </div>

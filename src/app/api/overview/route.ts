@@ -177,14 +177,14 @@ async function getLatestInventory(): Promise<InventoryItem[]> {
       .from("inventory_snapshots")
       .select("*")
       .order("captured_at", { ascending: false }),
-    supabaseAdmin.from("product_costs").select("sku, unit_cost"),
+    supabaseAdmin.from("product_costs").select("product_title, unit_cost"),
   ]);
 
   if (error || !data) return [];
 
-  const costBySku = new Map<string, number>();
+  const costByProduct = new Map<string, number>();
   for (const row of costsResult.data ?? []) {
-    costBySku.set(row.sku, Number(row.unit_cost));
+    costByProduct.set(row.product_title, Number(row.unit_cost));
   }
 
   const latestByKey = new Map<string, InventoryItem>();
@@ -194,7 +194,7 @@ async function getLatestInventory(): Promise<InventoryItem[]> {
         sku: row.sku,
         productTitle: row.product_title,
         quantity: row.quantity,
-        unitCost: costBySku.get(row.sku) ?? null,
+        unitCost: costByProduct.get(row.product_title) ?? null,
         capturedAt: row.captured_at,
       });
     }

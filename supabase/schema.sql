@@ -43,9 +43,10 @@ create table if not exists recurring_costs (
   active boolean not null default true
 );
 
--- Manually maintained per-SKU cost of goods sold, since Shopify has no native COGS field.
+-- Manually maintained per-product cost of goods sold, since Shopify has no native COGS field.
+-- Keyed by product title (applies to every variant/SKU of that product).
 create table if not exists product_costs (
-  sku text primary key,
+  product_title text primary key,
   unit_cost numeric not null check (unit_cost >= 0),
   updated_at timestamptz not null default now()
 );
