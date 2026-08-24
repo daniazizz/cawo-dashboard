@@ -25,7 +25,7 @@ See [`.env.example`](.env.example) for the full list. You'll need:
 
 - A Supabase project (URL + service role key)
 - A Wise personal API token + profile ID
-- A Shopify custom app with `read_inventory` + `read_products` scopes
+- A Shopify Dev Dashboard app (client ID/secret) installed on the same store, in the same org, with `read_inventory` + `read_products` scopes on its version
 - A Google Cloud service account with the Sheets API enabled, shared as
   Viewer on the target spreadsheet
 

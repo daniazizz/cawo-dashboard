@@ -45,15 +45,55 @@ interface ShopifyGraphQLResponse {
   errors?: Array<{ message: string }>;
 }
 
-export async function fetchShopifyInventory(): Promise<ShopifyInventoryItem[]> {
-  const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
-  const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+// Client credentials grant — exchanges the app's client ID/secret for a short-lived
+// access token. Only works when the app and store belong to the same Shopify org.
+let cachedToken: { value: string; expiresAt: number } | null = null;
 
-  if (!storeDomain || !accessToken) {
+async function getAccessToken(storeDomain: string): Promise<string> {
+  if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) {
+    return cachedToken.value;
+  }
+
+  const clientId = process.env.SHOPIFY_CLIENT_ID;
+  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Missing SHOPIFY_CLIENT_ID or SHOPIFY_CLIENT_SECRET environment variables");
+  }
+
+  const response = await fetch(`https://${storeDomain}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
     throw new Error(
-      "Missing SHOPIFY_STORE_DOMAIN or SHOPIFY_ADMIN_ACCESS_TOKEN environment variables"
+      `Shopify token exchange failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`
     );
   }
+
+  const { access_token, expires_in }: { access_token: string; expires_in: number } =
+    await response.json();
+
+  cachedToken = { value: access_token, expiresAt: Date.now() + expires_in * 1000 };
+  return access_token;
+}
+
+export async function fetchShopifyInventory(): Promise<ShopifyInventoryItem[]> {
+  const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
+
+  if (!storeDomain) {
+    throw new Error("Missing SHOPIFY_STORE_DOMAIN environment variable");
+  }
+
+  const accessToken = await getAccessToken(storeDomain);
 
   const items: ShopifyInventoryItem[] = [];
   let cursor: string | null = null;
