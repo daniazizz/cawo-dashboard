@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import InventoryPanel from "@/components/InventoryPanel";
 import MetricCard from "@/components/MetricCard";
 import { Panel, Row } from "@/components/Panel";
 import RefreshButton from "@/components/RefreshButton";
@@ -50,6 +51,21 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadOverview();
   }, [loadOverview]);
+
+  const handleSaveCost = useCallback(
+    async (sku: string, unitCost: number) => {
+      const response = await fetch("/api/inventory-costs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sku, unitCost }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to save cost (status ${response.status})`);
+      }
+      await loadOverview();
+    },
+    [loadOverview]
+  );
 
   // Each source can fail independently — surface the failure next to the metric it affects,
   // rather than blocking the whole dashboard, so a working source is still visible.
@@ -133,20 +149,7 @@ export default function Home() {
                 )}
               </Panel>
 
-              <Panel title="Inventory" warning={shopifyError}>
-                {data.inventory.length === 0 ? (
-                  <p className="px-5 py-3 text-sm text-zinc-400">No inventory data yet</p>
-                ) : (
-                  data.inventory.map((item) => (
-                    <Row
-                      key={item.sku}
-                      label={item.productTitle}
-                      sublabel={`SKU ${item.sku} · qty ${item.quantity}`}
-                      value={item.unitCost !== null ? formatCurrency(item.quantity * item.unitCost) : "—"}
-                    />
-                  ))
-                )}
-              </Panel>
+              <InventoryPanel items={data.inventory} warning={shopifyError} onSaveCost={handleSaveCost} />
 
               <Panel title="Recurring Costs">
                 {data.recurringCosts.length === 0 ? (

@@ -172,12 +172,20 @@ async function getLatestCash(): Promise<CashBalance[]> {
 }
 
 async function getLatestInventory(): Promise<InventoryItem[]> {
-  const { data, error } = await supabaseAdmin
-    .from("inventory_snapshots")
-    .select("*")
-    .order("captured_at", { ascending: false });
+  const [{ data, error }, costsResult] = await Promise.all([
+    supabaseAdmin
+      .from("inventory_snapshots")
+      .select("*")
+      .order("captured_at", { ascending: false }),
+    supabaseAdmin.from("product_costs").select("sku, unit_cost"),
+  ]);
 
   if (error || !data) return [];
+
+  const costBySku = new Map<string, number>();
+  for (const row of costsResult.data ?? []) {
+    costBySku.set(row.sku, Number(row.unit_cost));
+  }
 
   const latestByKey = new Map<string, InventoryItem>();
   for (const row of data) {
@@ -186,7 +194,7 @@ async function getLatestInventory(): Promise<InventoryItem[]> {
         sku: row.sku,
         productTitle: row.product_title,
         quantity: row.quantity,
-        unitCost: row.unit_cost === null ? null : Number(row.unit_cost),
+        unitCost: costBySku.get(row.sku) ?? null,
         capturedAt: row.captured_at,
       });
     }

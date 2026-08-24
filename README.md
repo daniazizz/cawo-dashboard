@@ -50,9 +50,11 @@ editor to create the four tables (`cash_snapshots`, `inventory_snapshots`,
 supabase/schema.sql            # run once in Supabase SQL editor
 src/
 ├── app/
-│   ├── page.tsx                # dashboard — client component, fetches on mount
+│   ├── page.tsx                     # dashboard — client component, fetches on mount
 │   ├── layout.tsx
-│   └── api/overview/route.ts   # pulls Wise/Shopify/Sheets, writes a snapshot, returns aggregated JSON
+│   └── api/
+│       ├── overview/route.ts        # pulls Wise/Shopify/Sheets, writes a snapshot, returns aggregated JSON
+│       └── inventory-costs/route.ts # upserts a manually-entered per-SKU unit cost (COGS)
 ├── lib/
 │   ├── supabase.ts             # server-side Supabase client (service role key)
 │   ├── types.ts
@@ -63,13 +65,12 @@ src/
 └── components/
     ├── MetricCard.tsx
     ├── Panel.tsx
+    ├── InventoryPanel.tsx   # inventory grouped by product, with inline COGS editing
     └── RefreshButton.tsx
 ```
 
 ## Not yet built
 
-- Inventory unit cost (Shopify has no native COGS field — `unit_cost` is
-  currently always `null`)
 - Recurring costs CRUD UI (rows must be inserted directly in Supabase)
 - Trend chart (Recharts is installed, snapshots already accumulate history)
 - Auth (fine for a private URL, add before sharing more broadly)
