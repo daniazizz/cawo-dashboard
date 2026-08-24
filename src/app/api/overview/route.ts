@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { fetchWiseBalances } from "@/lib/integrations/wise";
+import { fetchWiseBalances, fetchRatesToEur } from "@/lib/integrations/wise";
 import { fetchShopifyInventory } from "@/lib/integrations/shopify";
 import { fetch3plLiability } from "@/lib/integrations/sheets";
 import type {
@@ -84,7 +84,28 @@ async function buildOverviewResponse() {
     getRecurringCosts(),
   ]);
 
-  const totalCash = cash.reduce((sum, c) => sum + c.amount, 0);
+  // All totals are expressed in EUR. Cash is converted using live Wise rates;
+  // liabilities/inventory have no currency field yet, so they're assumed to already be EUR.
+  let totalCash = 0;
+  const currencies = Array.from(new Set(cash.map((c) => c.currency)));
+  if (currencies.length > 0) {
+    try {
+      const rates = await fetchRatesToEur(currencies);
+      for (const c of cash) {
+        const rate = rates[c.currency];
+        if (rate === undefined) {
+          errors.push(`No EUR exchange rate available for ${c.currency} — excluded from totals`);
+          continue;
+        }
+        totalCash += c.amount * rate;
+      }
+    } catch (err) {
+      errors.push(
+        `EUR conversion failed: ${err instanceof Error ? err.message : err} — cash totals may be incomplete`
+      );
+    }
+  }
+
   const totalInventoryValue = inventory.reduce(
     (sum, i) => sum + i.quantity * (i.unitCost ?? 0),
     0
@@ -100,6 +121,7 @@ async function buildOverviewResponse() {
     liabilities,
     recurringCosts,
     totals: {
+      currency: "EUR",
       totalCash,
       totalInventoryValue,
       totalLiabilities,

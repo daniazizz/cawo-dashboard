@@ -68,10 +68,12 @@ src/
 
 ## Not yet built
 
-- Multi-currency conversion for `netPosition`
 - Inventory unit cost (Shopify has no native COGS field — `unit_cost` is
   currently always `null`)
 - Recurring costs CRUD UI (rows must be inserted directly in Supabase)
 - Trend chart (Recharts is installed, snapshots already accumulate history)
 - Auth (fine for a private URL, add before sharing more broadly)
+- Liabilities/inventory currency: totals are all reported in EUR (cash is
+  converted live via Wise exchange rates), but liabilities and inventory
+  have no currency field yet, so they're assumed to already be in EUR
 

@@ -35,6 +35,7 @@ export interface OverviewResponse {
   liabilities: Liability[];
   recurringCosts: RecurringCost[];
   totals: {
+    currency: "EUR";
     totalCash: number;
     totalInventoryValue: number;
     totalLiabilities: number;

@@ -8,12 +8,12 @@ import type { OverviewResponse } from "@/lib/types";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
-  currency: "USD",
+  currency: "EUR",
   maximumFractionDigits: 0,
 });
 
 function formatCurrency(amount: number, currency?: string) {
-  if (currency && currency !== "USD") {
+  if (currency && currency !== "EUR") {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
@@ -87,6 +87,7 @@ export default function Home() {
               <MetricCard
                 label="Total Cash"
                 value={formatCurrency(data.totals.totalCash)}
+                hint="Converted to EUR"
                 warning={wiseError}
               />
               <MetricCard
