@@ -25,7 +25,7 @@ export async function fetchWiseBalances(): Promise<WiseCashBalance[]> {
   }
 
   const response = await fetch(
-    `${WISE_API_BASE}/v4/profiles/${profileId}/balances?types=STANDARD`,
+    `${WISE_API_BASE}/v4/profiles/${profileId}/balances?types=STANDARD,SAVINGS`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -36,7 +36,8 @@ export async function fetchWiseBalances(): Promise<WiseCashBalance[]> {
   );
 
   if (!response.ok) {
-    throw new Error(`Wise API request failed: ${response.status} ${response.statusText}`);
+    const body = await response.text();
+    throw new Error(`Wise API request failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`);
   }
 
   const balances: WiseBalance[] = await response.json();

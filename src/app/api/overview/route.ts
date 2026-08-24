@@ -43,6 +43,8 @@ async function buildOverviewResponse() {
     }));
     const { error } = await supabaseAdmin.from("cash_snapshots").insert(rows);
     if (error) errors.push(`Supabase cash insert failed: ${error.message}`);
+  } else if (wiseResult.status === "fulfilled" && wiseResult.value.length === 0) {
+    errors.push("Wise returned no balances for this profile — check WISE_PROFILE_ID points to a profile with an open balance");
   } else if (wiseResult.status === "rejected") {
     errors.push(`Wise fetch failed: ${wiseResult.reason?.message ?? wiseResult.reason}`);
   }
