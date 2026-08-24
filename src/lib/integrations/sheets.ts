@@ -1,5 +1,5 @@
-// Reads a single cell from a Google Sheet (the 3PL liability balance) via a service account.
-import { google } from "googleapis";
+// Reads a single cell from a Google Sheet (the 3PL liability balance).
+// The sheet is shared as "anyone with the link can view", so a plain API key is enough — no service account needed.
 
 export interface SheetsLiability {
   name: string;
@@ -8,31 +8,25 @@ export interface SheetsLiability {
 }
 
 export async function fetch3plLiability(): Promise<SheetsLiability> {
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
   const spreadsheetId = process.env.SHEETS_3PL_SPREADSHEET_ID;
   const cellRange = process.env.SHEETS_3PL_CELL_RANGE;
 
-  if (!clientEmail || !privateKey || !spreadsheetId || !cellRange) {
+  if (!apiKey || !spreadsheetId || !cellRange) {
     throw new Error(
-      "Missing GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, SHEETS_3PL_SPREADSHEET_ID, or SHEETS_3PL_CELL_RANGE environment variables"
+      "Missing GOOGLE_SHEETS_API_KEY, SHEETS_3PL_SPREADSHEET_ID, or SHEETS_3PL_CELL_RANGE environment variables"
     );
   }
 
-  const auth = new google.auth.JWT({
-    email: clientEmail,
-    key: privateKey,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(cellRange)}?key=${apiKey}`;
+  const response = await fetch(url, { cache: "no-store" });
 
-  const sheets = google.sheets({ version: "v4", auth });
+  if (!response.ok) {
+    throw new Error(`Google Sheets API request failed: ${response.status} ${response.statusText}`);
+  }
 
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: cellRange,
-  });
-
-  const rawValue = response.data.values?.[0]?.[0];
+  const json: { values?: string[][] } = await response.json();
+  const rawValue = json.values?.[0]?.[0];
   const amount = typeof rawValue === "string" ? parseFloat(rawValue.replace(/[^0-9.-]/g, "")) : Number(rawValue);
 
   return {
