@@ -51,6 +51,13 @@ export default function Home() {
     loadOverview();
   }, [loadOverview]);
 
+  // Each source can fail independently — surface the failure next to the metric it affects,
+  // rather than blocking the whole dashboard, so a working source is still visible.
+  const findError = (keyword: string) => data?.errors?.find((e) => e.toLowerCase().includes(keyword));
+  const wiseError = findError("wise");
+  const shopifyError = findError("shopify");
+  const sheetsError = findError("sheets");
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-5xl px-6 py-10">
@@ -72,31 +79,26 @@ export default function Home() {
           </div>
         )}
 
-        {data?.errors && data.errors.length > 0 && (
-          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <p className="font-medium">Some sources failed to refresh:</p>
-            <ul className="mt-1 list-inside list-disc">
-              {data.errors.map((err) => (
-                <li key={err}>{err}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         {isLoading && !data ? (
           <p className="text-sm text-zinc-500">Loading…</p>
         ) : data ? (
           <>
             <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard label="Total Cash" value={formatCurrency(data.totals.totalCash)} />
+              <MetricCard
+                label="Total Cash"
+                value={formatCurrency(data.totals.totalCash)}
+                warning={wiseError}
+              />
               <MetricCard
                 label="Inventory Value"
                 value={formatCurrency(data.totals.totalInventoryValue)}
+                warning={shopifyError}
               />
               <MetricCard
                 label="Total Liabilities"
                 value={formatCurrency(data.totals.totalLiabilities)}
                 tone="negative"
+                warning={sheetsError}
               />
               <MetricCard
                 label="Net Position"
@@ -106,7 +108,7 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <Panel title="Cash Balances">
+              <Panel title="Cash Balances" warning={wiseError}>
                 {data.cash.length === 0 ? (
                   <p className="px-5 py-3 text-sm text-zinc-400">No cash data yet</p>
                 ) : (
@@ -120,7 +122,7 @@ export default function Home() {
                 )}
               </Panel>
 
-              <Panel title="Liabilities">
+              <Panel title="Liabilities" warning={sheetsError}>
                 {data.liabilities.length === 0 ? (
                   <p className="px-5 py-3 text-sm text-zinc-400">No liabilities recorded</p>
                 ) : (
@@ -130,7 +132,7 @@ export default function Home() {
                 )}
               </Panel>
 
-              <Panel title="Inventory">
+              <Panel title="Inventory" warning={shopifyError}>
                 {data.inventory.length === 0 ? (
                   <p className="px-5 py-3 text-sm text-zinc-400">No inventory data yet</p>
                 ) : (
