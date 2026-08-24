@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ecommerce Finance Dashboard
 
-## Getting Started
+Internal dashboard giving a single view of the business's financial position:
+liquid cash (Wise), inventory value (Shopify), money owed to a 3PL (one cell in
+a Google Sheet), and recurring costs. Data is synced into Supabase whenever the
+dashboard is opened or the Refresh button is pressed (10s client-side
+cooldown) — there is no background cron job.
 
-First, run the development server:
+## Stack
+
+Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase (Postgres) ·
+Recharts · Wise API · Shopify Admin GraphQL API · Google Sheets API
+
+## Local setup
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in real values
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+See [`.env.example`](.env.example) for the full list. You'll need:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- A Supabase project (URL + service role key)
+- A Wise personal API token + profile ID
+- A Shopify custom app with `read_inventory` + `read_products` scopes
+- A Google Cloud service account with the Sheets API enabled, shared as
+  Viewer on the target spreadsheet
 
-## Learn More
+## Database
 
-To learn more about Next.js, take a look at the following resources:
+Run [`supabase/schema.sql`](supabase/schema.sql) once in the Supabase SQL
+editor to create the four tables (`cash_snapshots`, `inventory_snapshots`,
+`liabilities`, `recurring_costs`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploying to Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push this repo to GitHub.
+2. Import the repo into Vercel (Hobby plan is enough).
+3. Add every variable from `.env.example` in Project Settings → Environment
+   Variables.
+4. Deploy. No cron setup is needed — data refreshes when someone opens the
+   app, and on demand via the Refresh button.
 
-## Deploy on Vercel
+## Project structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+supabase/schema.sql            # run once in Supabase SQL editor
+src/
+├── app/
+│   ├── page.tsx                # dashboard — client component, fetches on mount
+│   ├── layout.tsx
+│   └── api/overview/route.ts   # pulls Wise/Shopify/Sheets, writes a snapshot, returns aggregated JSON
+├── lib/
+│   ├── supabase.ts             # server-side Supabase client (service role key)
+│   ├── types.ts
+│   └── integrations/
+│       ├── wise.ts
+│       ├── shopify.ts
+│       └── sheets.ts
+└── components/
+    ├── MetricCard.tsx
+    ├── Panel.tsx
+    └── RefreshButton.tsx
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Not yet built
+
+- Multi-currency conversion for `netPosition`
+- Inventory unit cost (Shopify has no native COGS field — `unit_cost` is
+  currently always `null`)
+- Recurring costs CRUD UI (rows must be inserted directly in Supabase)
+- Trend chart (Recharts is installed, snapshots already accumulate history)
+- Auth (fine for a private URL, add before sharing more broadly)
+

@@ -1,69 +1,170 @@
-import Image from "next/image";
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import MetricCard from "@/components/MetricCard";
+import { Panel, Row } from "@/components/Panel";
+import RefreshButton from "@/components/RefreshButton";
+import type { OverviewResponse } from "@/lib/types";
+
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
+function formatCurrency(amount: number, currency?: string) {
+  if (currency && currency !== "USD") {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  }
+  return currencyFormatter.format(amount);
+}
 
 export default function Home() {
+  const [data, setData] = useState<OverviewResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const loadOverview = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const response = await fetch("/api/overview");
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+      const json: OverviewResponse = await response.json();
+      setData(json);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to load dashboard data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Fetch-on-mount: standard pattern for client components without a data-fetching framework.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadOverview();
+  }, [loadOverview]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="min-h-screen bg-zinc-50">
+      <div className="mx-auto max-w-5xl px-6 py-10">
+        <header className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-zinc-900">Finance Dashboard</h1>
+            {data && (
+              <p className="mt-1 text-xs text-zinc-400">
+                Last updated {new Date(data.generatedAt).toLocaleString()}
+              </p>
+            )}
+          </div>
+          <RefreshButton onRefresh={loadOverview} />
+        </header>
+
+        {errorMessage && (
+          <div className="mb-6 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {errorMessage}
+          </div>
+        )}
+
+        {data?.errors && data.errors.length > 0 && (
+          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <p className="font-medium">Some sources failed to refresh:</p>
+            <ul className="mt-1 list-inside list-disc">
+              {data.errors.map((err) => (
+                <li key={err}>{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {isLoading && !data ? (
+          <p className="text-sm text-zinc-500">Loading…</p>
+        ) : data ? (
+          <>
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <MetricCard label="Total Cash" value={formatCurrency(data.totals.totalCash)} />
+              <MetricCard
+                label="Inventory Value"
+                value={formatCurrency(data.totals.totalInventoryValue)}
+              />
+              <MetricCard
+                label="Total Liabilities"
+                value={formatCurrency(data.totals.totalLiabilities)}
+                tone="negative"
+              />
+              <MetricCard
+                label="Net Position"
+                value={formatCurrency(data.totals.netPosition)}
+                tone={data.totals.netPosition >= 0 ? "positive" : "negative"}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Panel title="Cash Balances">
+                {data.cash.length === 0 ? (
+                  <p className="px-5 py-3 text-sm text-zinc-400">No cash data yet</p>
+                ) : (
+                  data.cash.map((c) => (
+                    <Row
+                      key={`${c.source}-${c.currency}`}
+                      label={`${c.source} (${c.currency})`}
+                      value={formatCurrency(c.amount, c.currency)}
+                    />
+                  ))
+                )}
+              </Panel>
+
+              <Panel title="Liabilities">
+                {data.liabilities.length === 0 ? (
+                  <p className="px-5 py-3 text-sm text-zinc-400">No liabilities recorded</p>
+                ) : (
+                  data.liabilities.map((l) => (
+                    <Row key={l.name} label={l.name} sublabel={l.source} value={formatCurrency(l.amount)} />
+                  ))
+                )}
+              </Panel>
+
+              <Panel title="Inventory">
+                {data.inventory.length === 0 ? (
+                  <p className="px-5 py-3 text-sm text-zinc-400">No inventory data yet</p>
+                ) : (
+                  data.inventory.map((item) => (
+                    <Row
+                      key={item.sku}
+                      label={item.productTitle}
+                      sublabel={`SKU ${item.sku} · qty ${item.quantity}`}
+                      value={item.unitCost !== null ? formatCurrency(item.quantity * item.unitCost) : "—"}
+                    />
+                  ))
+                )}
+              </Panel>
+
+              <Panel title="Recurring Costs">
+                {data.recurringCosts.length === 0 ? (
+                  <p className="px-5 py-3 text-sm text-zinc-400">No recurring costs configured</p>
+                ) : (
+                  data.recurringCosts
+                    .filter((c) => c.active)
+                    .map((c) => (
+                      <Row
+                        key={c.id}
+                        label={c.name}
+                        sublabel={`${c.category} · ${c.frequency}`}
+                        value={formatCurrency(c.amount)}
+                      />
+                    ))
+                )}
+              </Panel>
+            </div>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
