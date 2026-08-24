@@ -22,7 +22,8 @@ export async function fetch3plLiability(): Promise<SheetsLiability> {
   const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error(`Google Sheets API request failed: ${response.status} ${response.statusText}`);
+    const body = await response.text();
+    throw new Error(`Google Sheets API request failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`);
   }
 
   const json: { values?: string[][] } = await response.json();

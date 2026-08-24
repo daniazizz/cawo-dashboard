@@ -74,8 +74,9 @@ export async function fetchShopifyInventory(): Promise<ShopifyInventoryItem[]> {
     );
 
     if (!response.ok) {
+      const body = await response.text();
       throw new Error(
-        `Shopify API request failed: ${response.status} ${response.statusText}`
+        `Shopify API request failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`
       );
     }
 
