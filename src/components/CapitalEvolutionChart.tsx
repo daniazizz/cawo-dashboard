@@ -97,24 +97,6 @@ export default function CapitalEvolutionChart({ points }: { points: HistoryPoint
           />
         </ComposedChart>
       </ResponsiveContainer>
-
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <SummaryCell label="Cash" value={latest.cash} />
-        <SummaryCell label="Inventory" value={latest.inventory} />
-        <SummaryCell label="Other" value={latest.otherBalances} />
-        <SummaryCell label="Liabilities" value={latest.liabilities} />
-      </div>
-    </div>
-  );
-}
-
-function SummaryCell({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-md bg-zinc-50 px-3 py-2 text-center">
-      <p className="text-xs text-zinc-400">{label}</p>
-      <p className="text-sm font-medium tabular-nums text-zinc-900">
-        {currencyFormatter.format(value)}
-      </p>
     </div>
   );
 }
