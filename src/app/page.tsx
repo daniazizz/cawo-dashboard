@@ -121,6 +121,11 @@ export default function Home() {
   const sheetsError = findError("sheets");
   const cashError = wiseError ?? payoutError;
 
+  // Liquid current state — excludes inventory, which is slow-moving and not immediately spendable.
+  const currentPosition = data
+    ? data.totals.totalCash + data.totals.totalOtherBalances - data.totals.totalLiabilities
+    : 0;
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-5xl px-6 py-10">
@@ -148,6 +153,15 @@ export default function Home() {
           <p className="text-sm text-zinc-500">Loading…</p>
         ) : data ? (
           <>
+            <div className="mb-4">
+              <MetricCard
+                label="Current Position"
+                value={formatCurrency(currentPosition)}
+                hint="Cash + Other Balances − Liabilities (excludes slow-moving inventory)"
+                tone={currentPosition >= 0 ? "positive" : "negative"}
+              />
+            </div>
+
             <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <MetricCard
                 label="Total Cash"
@@ -162,16 +176,16 @@ export default function Home() {
                 tone={data.totals.totalOtherBalances >= 0 ? "positive" : "negative"}
               />
               <MetricCard
-                label="Inventory Value"
-                value={formatCurrency(data.totals.totalInventoryValue)}
-                hint="Included in Net Position"
-                warning={shopifyError}
-              />
-              <MetricCard
                 label="Total Liabilities"
                 value={formatCurrency(data.totals.totalLiabilities)}
                 tone="negative"
                 warning={sheetsError}
+              />
+              <MetricCard
+                label="Inventory Value"
+                value={formatCurrency(data.totals.totalInventoryValue)}
+                hint="Included in Net Position"
+                warning={shopifyError}
               />
               <MetricCard
                 label="Net Position"
