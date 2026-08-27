@@ -128,6 +128,13 @@ export default function Home() {
     [loadOverview],
   );
 
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    // Full reload (not client-side router) ensures the cleared session cookie takes effect immediately.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/login";
+  }
+
   // Each source can fail independently — surface the failure next to the metric it affects,
   // rather than blocking the whole dashboard, so a working source is still visible.
   const findError = (keyword: string) =>
@@ -163,7 +170,15 @@ export default function Home() {
               )}
             </div>
           </div>
-          <RefreshButton onRefresh={loadOverview} />
+          <div className="flex items-center gap-3">
+            <RefreshButton onRefresh={loadOverview} />
+            <button
+              onClick={handleLogout}
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+            >
+              Log out
+            </button>
+          </div>
         </header>
 
         {errorMessage && (
