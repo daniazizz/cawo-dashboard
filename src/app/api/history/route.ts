@@ -15,9 +15,10 @@ interface HistoryPoint {
 
 // Reconstructs one data point per day the dashboard was synced, using the "latest known
 // value as of that day" for each cash/inventory/liability key (snapshots are append-only).
-// Two simplifications, since we don't keep historical versions of these: inventory value
-// uses TODAY's product costs for all past days, and "other balances" uses today's net
-// total for all past days (it's a live ad-hoc list, not a time-series).
+// One simplification remains, since we don't keep historical per-product cost versions:
+// inventory value uses TODAY's product costs for all past days. Other balances are exact
+// for every past day — entries are soft-deleted (resolved_at) rather than removed, so we
+// know precisely which ones were active on any given day.
 export async function GET(request: Request) {
   try {
     return await buildHistoryResponse(request);
@@ -55,14 +56,28 @@ async function buildHistoryResponse(request: Request) {
       "product_costs",
       "product_title, unit_cost",
     ),
-    fetchWithRetry<{ amount: number }>("other_balances", "amount"),
+    fetchWithRetry<{ amount: number; created_at: string; resolved_at: string | null }>(
+      "other_balances",
+      "amount, created_at, resolved_at",
+    ),
   ]);
 
   const costByProduct = new Map<string, number>();
   for (const row of costRows) {
     costByProduct.set(row.product_title, Number(row.unit_cost));
   }
-  const totalOtherBalances = otherBalanceRows.reduce((sum, row) => sum + Number(row.amount), 0);
+
+  // Sum of entries active as of dayEndIso: created on/before that day, and not yet
+  // resolved (or resolved after that day).
+  function otherBalancesAsOf(dayEndIso: string): number {
+    let total = 0;
+    for (const row of otherBalanceRows) {
+      if (row.created_at <= dayEndIso && (row.resolved_at === null || row.resolved_at > dayEndIso)) {
+        total += Number(row.amount);
+      }
+    }
+    return total;
+  }
 
   const debugInfo = debug
     ? {
@@ -131,14 +146,15 @@ async function buildHistoryResponse(request: Request) {
     }
 
     const liabilitiesTotal = Array.from(latestLiabilities.values()).reduce((a, b) => a + b, 0);
+    const otherBalancesTotal = otherBalancesAsOf(dayEnd);
 
     points.push({
       date: day,
       cash: round2(cashTotal),
       inventory: round2(inventoryTotal),
       liabilities: round2(liabilitiesTotal),
-      otherBalances: round2(totalOtherBalances),
-      netPosition: round2(cashTotal + inventoryTotal - liabilitiesTotal + totalOtherBalances),
+      otherBalances: round2(otherBalancesTotal),
+      netPosition: round2(cashTotal + inventoryTotal - liabilitiesTotal + otherBalancesTotal),
     });
   }
 

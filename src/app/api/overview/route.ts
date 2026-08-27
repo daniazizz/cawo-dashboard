@@ -206,6 +206,7 @@ async function getOtherBalances(): Promise<OtherBalance[]> {
   const { data, error } = await supabaseAdmin
     .from("other_balances")
     .select("*")
+    .is("resolved_at", null)
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];

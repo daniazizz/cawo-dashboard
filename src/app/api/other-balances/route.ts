@@ -34,7 +34,13 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "id must be a non-empty string" }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin.from("other_balances").delete().eq("id", id);
+  // Soft-delete: keep the row (stamped resolved_at) instead of deleting it, so the history
+  // chart can still tell it was active on every day up to now.
+  const { error } = await supabaseAdmin
+    .from("other_balances")
+    .update({ resolved_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("resolved_at", null);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

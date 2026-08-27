@@ -97,7 +97,9 @@ src/
 - Liabilities/inventory currency: totals are all reported in EUR (cash is
   converted live via Wise exchange rates), but liabilities and inventory
   have no currency field yet, so they're assumed to already be in EUR
-- History chart approximations: inventory value and "other balances" have no
-  historical versions in the database, so the evolution chart applies
-  *today's* product costs and *today's* other-balances total to every past
-  day. Cash and liabilities are reconstructed accurately from snapshots.
+- History chart approximation: inventory value has no historical per-product
+  cost versions in the database, so the evolution chart applies *today's*
+  product costs to every past day. Cash, liabilities, and other balances are
+  all reconstructed accurately (other balances are soft-deleted via
+  `resolved_at` instead of removed, so the chart knows exactly which entries
+  were active on any given past day).

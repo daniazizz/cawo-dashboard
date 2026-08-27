@@ -54,11 +54,17 @@ create table if not exists product_costs (
 -- Ad-hoc money owed to/by CAWO that isn't covered by the automated sources.
 -- amount > 0 = money owed TO CAWO (receivable, e.g. a client debt).
 -- amount < 0 = money CAWO owes (payable, e.g. a supplier debt).
+-- resolved_at is set (soft-delete) instead of deleting the row, so the history chart can
+-- reconstruct exactly which entries were active on any given past day.
 create table if not exists other_balances (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   amount numeric not null,
   note text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
 );
+
+-- Migration for tables created before resolved_at existed — no-op on fresh installs.
+alter table other_balances add column if not exists resolved_at timestamptz;
 
