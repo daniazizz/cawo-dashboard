@@ -90,10 +90,10 @@ export default function CapitalEvolutionChart({ points }: { points: HistoryPoint
             }
           />
           <Legend wrapperStyle={{ fontSize: 12, color: "#a1a1aa" }} />
-          <Bar dataKey="cash" name="Cash" stackId="composition" fill="#f97316" />
-          <Bar dataKey="inventory" name="Inventory" stackId="composition" fill="#22c55e" />
-          <Bar dataKey="otherBalances" name="Other Balances" stackId="composition" fill="#eab308" />
-          <Bar dataKey="liabilitiesNegative" name="Liabilities" stackId="composition" fill="#a78bfa" />
+          <Bar dataKey="cash" name="Cash" stackId="composition" fill="#b45309" />
+          <Bar dataKey="inventory" name="Inventory" stackId="composition" fill="#15803d" />
+          <Bar dataKey="otherBalances" name="Other Balances" stackId="composition" fill="#a16207" />
+          <Bar dataKey="liabilitiesNegative" name="Liabilities" stackId="composition" fill="#6d28d9" />
           <Line
             type="monotone"
             dataKey="netPosition"
