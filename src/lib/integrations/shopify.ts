@@ -165,20 +165,23 @@ interface ShopifyBalanceResponse {
   balance: Array<{ amount: string; currency: string }>;
 }
 
-// Money already collected via Shopify Payments but not yet paid out to the bank —
-// requires the `shopify_payments_payouts` (or `shopify_payments_accounts`) scope,
-// and only returns data for stores actually using Shopify Payments.
-export async function fetchShopifyPendingPayout(): Promise<ShopifyPendingPayout[]> {
-  const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
+interface ShopifyPayout {
+  status: "scheduled" | "in_transit" | "paid" | "failed" | "canceled";
+  currency: string;
+  amount: string;
+}
 
-  if (!storeDomain) {
-    throw new Error("Missing SHOPIFY_STORE_DOMAIN environment variable");
-  }
+interface ShopifyPayoutsResponse {
+  payouts: ShopifyPayout[];
+}
 
-  const accessToken = await getAccessToken(storeDomain);
-
+async function fetchPayoutsByStatus(
+  storeDomain: string,
+  accessToken: string,
+  status: "scheduled" | "in_transit",
+): Promise<ShopifyPayout[]> {
   const response = await fetch(
-    `https://${storeDomain}/admin/api/2024-10/shopify_payments/balance.json`,
+    `https://${storeDomain}/admin/api/2024-10/shopify_payments/payouts.json?status=${status}`,
     {
       headers: { "X-Shopify-Access-Token": accessToken },
       cache: "no-store",
@@ -188,15 +191,63 @@ export async function fetchShopifyPendingPayout(): Promise<ShopifyPendingPayout[
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
-      `Shopify payout balance request failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`,
+      `Shopify payouts (${status}) request failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`,
     );
   }
 
-  const json: ShopifyBalanceResponse = await response.json();
+  const json: ShopifyPayoutsResponse = await response.json();
+  return json.payouts;
+}
 
-  return json.balance.map((entry) => ({
+// Money not yet in the bank: funds still held in the Shopify Payments balance, plus
+// payouts already issued (scheduled/in_transit) that have left that balance but haven't
+// landed in the bank/Wise account yet. Requires the `shopify_payments_payouts` (or
+// `shopify_payments_accounts`) scope, and only returns data for stores using Shopify Payments.
+export async function fetchShopifyPendingPayout(): Promise<ShopifyPendingPayout[]> {
+  const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
+
+  if (!storeDomain) {
+    throw new Error("Missing SHOPIFY_STORE_DOMAIN environment variable");
+  }
+
+  const accessToken = await getAccessToken(storeDomain);
+
+  const balanceResponse = await fetch(
+    `https://${storeDomain}/admin/api/2024-10/shopify_payments/balance.json`,
+    {
+      headers: { "X-Shopify-Access-Token": accessToken },
+      cache: "no-store",
+    },
+  );
+
+  if (!balanceResponse.ok) {
+    const body = await balanceResponse.text();
+    throw new Error(
+      `Shopify payout balance request failed: ${balanceResponse.status} ${balanceResponse.statusText} — ${body.slice(0, 300)}`,
+    );
+  }
+
+  const balanceJson: ShopifyBalanceResponse = await balanceResponse.json();
+
+  const [scheduled, inTransit] = await Promise.all([
+    fetchPayoutsByStatus(storeDomain, accessToken, "scheduled"),
+    fetchPayoutsByStatus(storeDomain, accessToken, "in_transit"),
+  ]);
+
+  const totalsByCurrency = new Map<string, number>();
+  for (const entry of balanceJson.balance) {
+    totalsByCurrency.set(entry.currency, parseFloat(entry.amount));
+  }
+  for (const payout of [...scheduled, ...inTransit]) {
+    totalsByCurrency.set(
+      payout.currency,
+      (totalsByCurrency.get(payout.currency) ?? 0) + parseFloat(payout.amount),
+    );
+  }
+
+  return Array.from(totalsByCurrency.entries()).map(([currency, amount]) => ({
     source: "shopify_payout" as const,
-    currency: entry.currency,
-    amount: parseFloat(entry.amount),
+    currency,
+    amount,
   }));
 }
