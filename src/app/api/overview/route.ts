@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { fetchWiseBalances, fetchRatesToEur } from "@/lib/integrations/wise";
-import { fetchShopifyInventory } from "@/lib/integrations/shopify";
+import { fetchShopifyInventory, fetchShopifyPendingPayout } from "@/lib/integrations/shopify";
 import { fetch3plLiability } from "@/lib/integrations/sheets";
 import type {
   CashBalance,
@@ -28,10 +28,11 @@ async function buildOverviewResponse() {
   const errors: string[] = [];
   const capturedAt = new Date().toISOString();
 
-  const [wiseResult, shopifyResult, sheetsResult] = await Promise.allSettled([
+  const [wiseResult, shopifyResult, sheetsResult, payoutResult] = await Promise.allSettled([
     fetchWiseBalances(),
     fetchShopifyInventory(),
     fetch3plLiability(),
+    fetchShopifyPendingPayout(),
   ]);
 
   if (wiseResult.status === "fulfilled" && wiseResult.value.length > 0) {
@@ -87,6 +88,21 @@ async function buildOverviewResponse() {
   } else {
     errors.push(
       `Sheets fetch failed: ${sheetsResult.reason?.message ?? sheetsResult.reason}`,
+    );
+  }
+
+  if (payoutResult.status === "fulfilled" && payoutResult.value.length > 0) {
+    const rows = payoutResult.value.map((payout) => ({
+      source: payout.source,
+      currency: payout.currency,
+      amount: payout.amount,
+      captured_at: capturedAt,
+    }));
+    const { error } = await supabaseAdmin.from("cash_snapshots").insert(rows);
+    if (error) errors.push(`Supabase payout insert failed: ${error.message}`);
+  } else if (payoutResult.status === "rejected") {
+    errors.push(
+      `Shopify payout fetch failed: ${payoutResult.reason?.message ?? payoutResult.reason}`,
     );
   }
 

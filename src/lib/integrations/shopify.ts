@@ -154,3 +154,49 @@ export async function fetchShopifyInventory(): Promise<ShopifyInventoryItem[]> {
 
   return items;
 }
+
+export interface ShopifyPendingPayout {
+  source: "shopify_payout";
+  currency: string;
+  amount: number;
+}
+
+interface ShopifyBalanceResponse {
+  balance: Array<{ amount: string; currency: string }>;
+}
+
+// Money already collected via Shopify Payments but not yet paid out to the bank —
+// requires the `shopify_payments_payouts` (or `shopify_payments_accounts`) scope,
+// and only returns data for stores actually using Shopify Payments.
+export async function fetchShopifyPendingPayout(): Promise<ShopifyPendingPayout[]> {
+  const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
+
+  if (!storeDomain) {
+    throw new Error("Missing SHOPIFY_STORE_DOMAIN environment variable");
+  }
+
+  const accessToken = await getAccessToken(storeDomain);
+
+  const response = await fetch(
+    `https://${storeDomain}/admin/api/2024-10/shopify_payments/balance.json`,
+    {
+      headers: { "X-Shopify-Access-Token": accessToken },
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Shopify payout balance request failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`,
+    );
+  }
+
+  const json: ShopifyBalanceResponse = await response.json();
+
+  return json.balance.map((entry) => ({
+    source: "shopify_payout" as const,
+    currency: entry.currency,
+    amount: parseFloat(entry.amount),
+  }));
+}

@@ -24,6 +24,15 @@ function formatCurrency(amount: number, currency?: string) {
   return currencyFormatter.format(amount);
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  wise: "Wise",
+  shopify_payout: "Shopify (pending payout)",
+};
+
+function sourceLabel(source: string) {
+  return SOURCE_LABELS[source] ?? source;
+}
+
 export default function Home() {
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,8 +83,12 @@ export default function Home() {
   const findError = (keyword: string) =>
     data?.errors?.find((e) => e.toLowerCase().includes(keyword));
   const wiseError = findError("wise");
-  const shopifyError = findError("shopify");
+  const payoutError = findError("payout");
+  const shopifyError = data?.errors?.find(
+    (e) => e.toLowerCase().includes("shopify") && !e.toLowerCase().includes("payout"),
+  );
   const sheetsError = findError("sheets");
+  const cashError = wiseError ?? payoutError;
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -108,8 +121,8 @@ export default function Home() {
               <MetricCard
                 label="Total Cash"
                 value={formatCurrency(data.totals.totalCash)}
-                hint="Converted to EUR"
-                warning={wiseError}
+                hint="Converted to EUR · includes pending Shopify payouts"
+                warning={cashError}
               />
               <MetricCard
                 label="Inventory Value"
@@ -132,7 +145,7 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <Panel title="Cash Balances" warning={wiseError}>
+              <Panel title="Cash Balances" warning={cashError}>
                 {data.cash.length === 0 ? (
                   <p className="px-5 py-3 text-sm text-zinc-400">
                     No cash data yet
@@ -141,7 +154,7 @@ export default function Home() {
                   data.cash.map((c) => (
                     <Row
                       key={`${c.source}-${c.currency}`}
-                      label={`${c.source} (${c.currency})`}
+                      label={`${sourceLabel(c.source)} (${c.currency})`}
                       value={formatCurrency(c.amount, c.currency)}
                     />
                   ))
