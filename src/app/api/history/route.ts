@@ -51,25 +51,25 @@ async function buildHistoryResponse(request: Request) {
       "name, amount, captured_at",
       sinceIso,
     ),
-    supabaseAdmin.from("product_costs").select("product_title, unit_cost"),
-    supabaseAdmin.from("other_balances").select("amount"),
+    fetchWithRetry<{ product_title: string; unit_cost: number }>(
+      "product_costs",
+      "product_title, unit_cost",
+    ),
+    fetchWithRetry<{ amount: number }>("other_balances", "amount"),
   ]);
 
   const costByProduct = new Map<string, number>();
-  for (const row of costRows.data ?? []) {
+  for (const row of costRows) {
     costByProduct.set(row.product_title, Number(row.unit_cost));
   }
-  const totalOtherBalances = (otherBalanceRows.data ?? []).reduce(
-    (sum, row) => sum + Number(row.amount),
-    0,
-  );
+  const totalOtherBalances = otherBalanceRows.reduce((sum, row) => sum + Number(row.amount), 0);
 
   const debugInfo = debug
     ? {
         cashCount: cash.length,
         inventoryCount: inventory.length,
         liabilitiesCount: liabilities.length,
-        costCount: costRows.data?.length ?? 0,
+        costCount: costRows.length,
       }
     : undefined;
 
@@ -194,4 +194,20 @@ async function fetchAllRows<T>(
   }
 
   return rows;
+}
+
+// Small full-table reads (product_costs, other_balances) — no pagination needed, but still
+// worth a single retry against the same transient PGRST303 clock-skew error.
+async function fetchWithRetry<T>(table: string, columns: string): Promise<T[]> {
+  let response = await supabaseAdmin.from(table).select(columns);
+
+  if (response.error?.code === "PGRST303") {
+    response = await supabaseAdmin.from(table).select(columns);
+  }
+
+  if (response.error) {
+    throw new Error(`Failed to read ${table}: ${response.error.message}`);
+  }
+
+  return (response.data ?? []) as T[];
 }
