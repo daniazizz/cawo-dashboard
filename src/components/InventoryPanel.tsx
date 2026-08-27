@@ -9,7 +9,9 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-function groupByProduct(items: InventoryItem[]): Array<[string, InventoryItem[]]> {
+function groupByProduct(
+  items: InventoryItem[],
+): Array<[string, InventoryItem[]]> {
   const groups = new Map<string, InventoryItem[]>();
   for (const item of items) {
     const variants = groups.get(item.productTitle) ?? [];
@@ -90,10 +92,15 @@ export default function InventoryPanel({
       </div>
       <div className="divide-y divide-zinc-100">
         {groups.length === 0 ? (
-          <p className="px-5 py-3 text-sm text-zinc-400">No inventory data yet</p>
+          <p className="px-5 py-3 text-sm text-zinc-400">
+            No inventory data yet
+          </p>
         ) : (
           groups.map(([productTitle, variants]) => {
-            const totalQuantity = variants.reduce((sum, v) => sum + v.quantity, 0);
+            const totalQuantity = variants.reduce(
+              (sum, v) => sum + v.quantity,
+              0,
+            );
             const unitCost = variants[0].unitCost;
             const totalValue = totalQuantity * (unitCost ?? 0);
 
@@ -101,16 +108,25 @@ export default function InventoryPanel({
               <div key={productTitle} className="px-5 py-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-zinc-800">{productTitle}</p>
+                    <p className="text-sm font-medium text-zinc-800">
+                      {productTitle}
+                    </p>
                     <p className="text-xs text-zinc-400">
-                      qty {totalQuantity} · {variants.length} variant{variants.length === 1 ? "" : "s"}
+                      qty {totalQuantity} · {variants.length} variant
+                      {variants.length === 1 ? "" : "s"}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <p className="text-sm font-medium tabular-nums text-zinc-900">
-                      {unitCost !== null ? currencyFormatter.format(totalValue) : "—"}
+                      {unitCost !== null
+                        ? currencyFormatter.format(totalValue)
+                        : "—"}
                     </p>
-                    <CostInput productTitle={productTitle} unitCost={unitCost} onSave={onSaveCost} />
+                    <CostInput
+                      productTitle={productTitle}
+                      unitCost={unitCost}
+                      onSave={onSaveCost}
+                    />
                   </div>
                 </div>
               </div>

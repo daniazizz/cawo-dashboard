@@ -14,7 +14,7 @@ export async function fetch3plLiability(): Promise<SheetsLiability> {
 
   if (!apiKey || !spreadsheetId || !cellRange) {
     throw new Error(
-      "Missing GOOGLE_SHEETS_API_KEY, SHEETS_3PL_SPREADSHEET_ID, or SHEETS_3PL_CELL_RANGE environment variables"
+      "Missing GOOGLE_SHEETS_API_KEY, SHEETS_3PL_SPREADSHEET_ID, or SHEETS_3PL_CELL_RANGE environment variables",
     );
   }
 
@@ -23,12 +23,17 @@ export async function fetch3plLiability(): Promise<SheetsLiability> {
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Google Sheets API request failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`);
+    throw new Error(
+      `Google Sheets API request failed: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`,
+    );
   }
 
   const json: { values?: string[][] } = await response.json();
   const rawValue = json.values?.[0]?.[0];
-  const amount = typeof rawValue === "string" ? parseFloat(rawValue.replace(/[^0-9.-]/g, "")) : Number(rawValue);
+  const amount =
+    typeof rawValue === "string"
+      ? parseFloat(rawValue.replace(/[^0-9.-]/g, ""))
+      : Number(rawValue);
 
   return {
     name: "3PL Balance",

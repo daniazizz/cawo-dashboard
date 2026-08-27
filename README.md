@@ -77,4 +77,3 @@ src/
 - Liabilities/inventory currency: totals are all reported in EUR (cash is
   converted live via Wise exchange rates), but liabilities and inventory
   have no currency field yet, so they're assumed to already be in EUR
-

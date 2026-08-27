@@ -24,7 +24,15 @@ export function Panel({
   );
 }
 
-export function Row({ label, value, sublabel }: { label: string; value: string; sublabel?: string }) {
+export function Row({
+  label,
+  value,
+  sublabel,
+}: {
+  label: string;
+  value: string;
+  sublabel?: string;
+}) {
   return (
     <div className="flex items-center justify-between px-5 py-3">
       <div>

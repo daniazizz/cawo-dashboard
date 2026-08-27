@@ -11,7 +11,7 @@ function getSupabaseAdmin(): SupabaseClient {
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables"
+      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables",
     );
   }
 

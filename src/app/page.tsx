@@ -40,7 +40,9 @@ export default function Home() {
       const json: OverviewResponse = await response.json();
       setData(json);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Failed to load dashboard data");
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to load dashboard data",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -64,12 +66,13 @@ export default function Home() {
       }
       await loadOverview();
     },
-    [loadOverview]
+    [loadOverview],
   );
 
   // Each source can fail independently — surface the failure next to the metric it affects,
   // rather than blocking the whole dashboard, so a working source is still visible.
-  const findError = (keyword: string) => data?.errors?.find((e) => e.toLowerCase().includes(keyword));
+  const findError = (keyword: string) =>
+    data?.errors?.find((e) => e.toLowerCase().includes(keyword));
   const wiseError = findError("wise");
   const shopifyError = findError("shopify");
   const sheetsError = findError("sheets");
@@ -79,7 +82,9 @@ export default function Home() {
       <div className="mx-auto max-w-5xl px-6 py-10">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-zinc-900">Finance Dashboard</h1>
+            <h1 className="text-xl font-semibold text-zinc-900">
+              Finance Dashboard
+            </h1>
             {data && (
               <p className="mt-1 text-xs text-zinc-400">
                 Last updated {new Date(data.generatedAt).toLocaleString()}
@@ -129,7 +134,9 @@ export default function Home() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Panel title="Cash Balances" warning={wiseError}>
                 {data.cash.length === 0 ? (
-                  <p className="px-5 py-3 text-sm text-zinc-400">No cash data yet</p>
+                  <p className="px-5 py-3 text-sm text-zinc-400">
+                    No cash data yet
+                  </p>
                 ) : (
                   data.cash.map((c) => (
                     <Row
@@ -143,19 +150,32 @@ export default function Home() {
 
               <Panel title="Liabilities" warning={sheetsError}>
                 {data.liabilities.length === 0 ? (
-                  <p className="px-5 py-3 text-sm text-zinc-400">No liabilities recorded</p>
+                  <p className="px-5 py-3 text-sm text-zinc-400">
+                    No liabilities recorded
+                  </p>
                 ) : (
                   data.liabilities.map((l) => (
-                    <Row key={l.name} label={l.name} sublabel={l.source} value={formatCurrency(l.amount)} />
+                    <Row
+                      key={l.name}
+                      label={l.name}
+                      sublabel={l.source}
+                      value={formatCurrency(l.amount)}
+                    />
                   ))
                 )}
               </Panel>
 
-              <InventoryPanel items={data.inventory} warning={shopifyError} onSaveCost={handleSaveCost} />
+              <InventoryPanel
+                items={data.inventory}
+                warning={shopifyError}
+                onSaveCost={handleSaveCost}
+              />
 
               <Panel title="Recurring Costs">
                 {data.recurringCosts.length === 0 ? (
-                  <p className="px-5 py-3 text-sm text-zinc-400">No recurring costs configured</p>
+                  <p className="px-5 py-3 text-sm text-zinc-400">
+                    No recurring costs configured
+                  </p>
                 ) : (
                   data.recurringCosts
                     .filter((c) => c.active)

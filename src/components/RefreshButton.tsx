@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 
 const COOLDOWN_SECONDS = 10;
 
-export default function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
+export default function RefreshButton({
+  onRefresh,
+}: {
+  onRefresh: () => void;
+}) {
   const [secondsLeft, setSecondsLeft] = useState(0);
 
   useEffect(() => {

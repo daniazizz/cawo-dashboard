@@ -19,7 +19,7 @@ export async function GET() {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Unknown server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -43,10 +43,17 @@ async function buildOverviewResponse() {
     }));
     const { error } = await supabaseAdmin.from("cash_snapshots").insert(rows);
     if (error) errors.push(`Supabase cash insert failed: ${error.message}`);
-  } else if (wiseResult.status === "fulfilled" && wiseResult.value.length === 0) {
-    errors.push("Wise returned no balances for this profile — check WISE_PROFILE_ID points to a profile with an open balance");
+  } else if (
+    wiseResult.status === "fulfilled" &&
+    wiseResult.value.length === 0
+  ) {
+    errors.push(
+      "Wise returned no balances for this profile — check WISE_PROFILE_ID points to a profile with an open balance",
+    );
   } else if (wiseResult.status === "rejected") {
-    errors.push(`Wise fetch failed: ${wiseResult.reason?.message ?? wiseResult.reason}`);
+    errors.push(
+      `Wise fetch failed: ${wiseResult.reason?.message ?? wiseResult.reason}`,
+    );
   }
 
   if (shopifyResult.status === "fulfilled" && shopifyResult.value.length > 0) {
@@ -57,11 +64,14 @@ async function buildOverviewResponse() {
       unit_cost: null,
       captured_at: capturedAt,
     }));
-    const { error } = await supabaseAdmin.from("inventory_snapshots").insert(rows);
-    if (error) errors.push(`Supabase inventory insert failed: ${error.message}`);
+    const { error } = await supabaseAdmin
+      .from("inventory_snapshots")
+      .insert(rows);
+    if (error)
+      errors.push(`Supabase inventory insert failed: ${error.message}`);
   } else if (shopifyResult.status === "rejected") {
     errors.push(
-      `Shopify fetch failed: ${shopifyResult.reason?.message ?? shopifyResult.reason}`
+      `Shopify fetch failed: ${shopifyResult.reason?.message ?? shopifyResult.reason}`,
     );
   }
 
@@ -72,9 +82,12 @@ async function buildOverviewResponse() {
       source: sheetsResult.value.source,
       captured_at: capturedAt,
     });
-    if (error) errors.push(`Supabase liability insert failed: ${error.message}`);
+    if (error)
+      errors.push(`Supabase liability insert failed: ${error.message}`);
   } else {
-    errors.push(`Sheets fetch failed: ${sheetsResult.reason?.message ?? sheetsResult.reason}`);
+    errors.push(
+      `Sheets fetch failed: ${sheetsResult.reason?.message ?? sheetsResult.reason}`,
+    );
   }
 
   const [cash, inventory, liabilities, recurringCosts] = await Promise.all([
@@ -94,21 +107,23 @@ async function buildOverviewResponse() {
       for (const c of cash) {
         const rate = rates[c.currency];
         if (rate === undefined) {
-          errors.push(`No EUR exchange rate available for ${c.currency} — excluded from totals`);
+          errors.push(
+            `No EUR exchange rate available for ${c.currency} — excluded from totals`,
+          );
           continue;
         }
         totalCash += c.amount * rate;
       }
     } catch (err) {
       errors.push(
-        `EUR conversion failed: ${err instanceof Error ? err.message : err} — cash totals may be incomplete`
+        `EUR conversion failed: ${err instanceof Error ? err.message : err} — cash totals may be incomplete`,
       );
     }
   }
 
   const totalInventoryValue = inventory.reduce(
     (sum, i) => sum + i.quantity * (i.unitCost ?? 0),
-    0
+    0,
   );
   const totalLiabilities = liabilities.reduce((sum, l) => sum + l.amount, 0);
   const monthlyRecurringCosts = recurringCosts
@@ -135,7 +150,10 @@ async function buildOverviewResponse() {
   return NextResponse.json(body);
 }
 
-function toMonthly(amount: number, frequency: RecurringCost["frequency"]): number {
+function toMonthly(
+  amount: number,
+  frequency: RecurringCost["frequency"],
+): number {
   switch (frequency) {
     case "weekly":
       return (amount * 52) / 12;
@@ -225,7 +243,9 @@ async function getLatestLiabilities(): Promise<Liability[]> {
 }
 
 async function getRecurringCosts(): Promise<RecurringCost[]> {
-  const { data, error } = await supabaseAdmin.from("recurring_costs").select("*");
+  const { data, error } = await supabaseAdmin
+    .from("recurring_costs")
+    .select("*");
 
   if (error || !data) return [];
 
