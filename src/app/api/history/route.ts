@@ -18,9 +18,9 @@ interface HistoryPoint {
 // Two simplifications, since we don't keep historical versions of these: inventory value
 // uses TODAY's product costs for all past days, and "other balances" uses today's net
 // total for all past days (it's a live ad-hoc list, not a time-series).
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    return await buildHistoryResponse();
+    return await buildHistoryResponse(request);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Unknown server error" },
@@ -29,7 +29,8 @@ export async function GET() {
   }
 }
 
-async function buildHistoryResponse() {
+async function buildHistoryResponse(request: Request) {
+  const debug = new URL(request.url).searchParams.has("debug");
   const since = new Date();
   since.setDate(since.getDate() - 90);
 
@@ -65,6 +66,22 @@ async function buildHistoryResponse() {
   const cash = cashRows.data ?? [];
   const inventory = inventoryRows.data ?? [];
   const liabilities = liabilityRows.data ?? [];
+
+  const debugInfo = debug
+    ? {
+        cashRowsError: cashRows.error,
+        inventoryRowsError: inventoryRows.error,
+        liabilityRowsError: liabilityRows.error,
+        costRowsError: costRows.error,
+        otherBalanceRowsError: otherBalanceRows.error,
+        cashCount: cash.length,
+        inventoryCount: inventory.length,
+        liabilitiesCount: liabilities.length,
+        costCount: costRows.data?.length ?? 0,
+        sampleInventoryTitle: inventory[0]?.product_title,
+        sampleCostKeys: (costRows.data ?? []).slice(0, 3).map((r) => r.product_title),
+      }
+    : undefined;
 
   const days = Array.from(
     new Set(
@@ -135,7 +152,7 @@ async function buildHistoryResponse() {
     });
   }
 
-  return NextResponse.json({ points });
+  return NextResponse.json({ points, ...(debugInfo ? { debugInfo } : {}) });
 }
 
 function dayKey(isoTimestamp: string): string {
