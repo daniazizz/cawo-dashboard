@@ -148,12 +148,18 @@ export default function Home() {
           <p className="text-sm text-zinc-500">Loading…</p>
         ) : data ? (
           <>
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <MetricCard
                 label="Total Cash"
                 value={formatCurrency(data.totals.totalCash)}
                 hint="Converted to EUR · includes pending Shopify payouts"
                 warning={cashError}
+              />
+              <MetricCard
+                label="Other Balances"
+                value={formatCurrency(data.totals.totalOtherBalances)}
+                hint="Net of receivables/payables"
+                tone={data.totals.totalOtherBalances >= 0 ? "positive" : "negative"}
               />
               <MetricCard
                 label="Inventory Value"
@@ -209,6 +215,12 @@ export default function Home() {
                 )}
               </Panel>
 
+              <OtherBalancesPanel
+                items={data.otherBalances}
+                onAdd={handleAddOtherBalance}
+                onDelete={handleDeleteOtherBalance}
+              />
+
               <InventoryPanel
                 items={data.inventory}
                 warning={shopifyError}
@@ -233,12 +245,6 @@ export default function Home() {
                     ))
                 )}
               </Panel>
-
-              <OtherBalancesPanel
-                items={data.otherBalances}
-                onAdd={handleAddOtherBalance}
-                onDelete={handleDeleteOtherBalance}
-              />
             </div>
           </>
         ) : null}

@@ -78,18 +78,27 @@ export default function InventoryPanel({
   warning?: string;
   onSaveCost: (productTitle: string, unitCost: number) => Promise<void>;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
   const groups = groupByProduct(items);
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white shadow-sm">
-      <div className="border-b border-zinc-200 px-5 py-3">
-        <h2 className="text-sm font-semibold text-zinc-700">Inventory</h2>
-        {warning && (
-          <p className="mt-0.5 text-xs text-amber-600" title={warning}>
-            ⚠ last sync failed — showing last known data
-          </p>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex w-full items-center justify-between border-b border-zinc-200 px-5 py-3 text-left"
+      >
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-700">Inventory</h2>
+          {warning && (
+            <p className="mt-0.5 text-xs text-amber-600" title={warning}>
+              ⚠ last sync failed — showing last known data
+            </p>
+          )}
+        </div>
+        <span className="text-xs text-zinc-400">{isOpen ? "Hide ▲" : "Show ▼"}</span>
+      </button>
+      {isOpen && (
       <div className="divide-y divide-zinc-100">
         {groups.length === 0 ? (
           <p className="px-5 py-3 text-sm text-zinc-400">
@@ -134,6 +143,7 @@ export default function InventoryPanel({
           })
         )}
       </div>
+      )}
     </div>
   );
 }
