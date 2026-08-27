@@ -50,3 +50,15 @@ create table if not exists product_costs (
   unit_cost numeric not null check (unit_cost >= 0),
   updated_at timestamptz not null default now()
 );
+
+-- Ad-hoc money owed to/by CAWO that isn't covered by the automated sources.
+-- amount > 0 = money owed TO CAWO (receivable, e.g. a client debt).
+-- amount < 0 = money CAWO owes (payable, e.g. a supplier debt).
+create table if not exists other_balances (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  amount numeric not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+

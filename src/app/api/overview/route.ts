@@ -7,6 +7,7 @@ import type {
   CashBalance,
   InventoryItem,
   Liability,
+  OtherBalance,
   OverviewResponse,
   RecurringCost,
 } from "@/lib/types";
@@ -106,11 +107,12 @@ async function buildOverviewResponse() {
     );
   }
 
-  const [cash, inventory, liabilities, recurringCosts] = await Promise.all([
+  const [cash, inventory, liabilities, recurringCosts, otherBalances] = await Promise.all([
     getLatestCash(),
     getLatestInventory(),
     getLatestLiabilities(),
     getRecurringCosts(),
+    getOtherBalances(),
   ]);
 
   // All totals are expressed in EUR. Cash is converted using live Wise rates;
@@ -142,6 +144,7 @@ async function buildOverviewResponse() {
     0,
   );
   const totalLiabilities = liabilities.reduce((sum, l) => sum + l.amount, 0);
+  const totalOtherBalances = otherBalances.reduce((sum, o) => sum + o.amount, 0);
   const monthlyRecurringCosts = recurringCosts
     .filter((c) => c.active)
     .reduce((sum, c) => sum + toMonthly(c.amount, c.frequency), 0);
@@ -151,12 +154,14 @@ async function buildOverviewResponse() {
     inventory,
     liabilities,
     recurringCosts,
+    otherBalances,
     totals: {
       currency: "EUR",
       totalCash,
       totalInventoryValue,
       totalLiabilities,
-      netPosition: totalCash + totalInventoryValue - totalLiabilities,
+      totalOtherBalances,
+      netPosition: totalCash + totalInventoryValue - totalLiabilities + totalOtherBalances,
       monthlyRecurringCosts,
     },
     generatedAt: capturedAt,
@@ -272,5 +277,22 @@ async function getRecurringCosts(): Promise<RecurringCost[]> {
     frequency: row.frequency,
     category: row.category,
     active: row.active,
+  }));
+}
+
+async function getOtherBalances(): Promise<OtherBalance[]> {
+  const { data, error } = await supabaseAdmin
+    .from("other_balances")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    amount: Number(row.amount),
+    note: row.note,
+    createdAt: row.created_at,
   }));
 }

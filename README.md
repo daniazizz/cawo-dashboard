@@ -54,7 +54,8 @@ src/
 │   ├── layout.tsx
 │   └── api/
 │       ├── overview/route.ts        # pulls Wise/Shopify/Sheets, writes a snapshot, returns aggregated JSON
-│       └── inventory-costs/route.ts # upserts a manually-entered per-SKU unit cost (COGS)
+│       ├── inventory-costs/route.ts # upserts a manually-entered per-product unit cost (COGS)
+│       └── other-balances/route.ts  # add/remove ad-hoc receivables/payables
 ├── lib/
 │   ├── supabase.ts             # server-side Supabase client (service role key)
 │   ├── types.ts
@@ -65,7 +66,8 @@ src/
 └── components/
     ├── MetricCard.tsx
     ├── Panel.tsx
-    ├── InventoryPanel.tsx   # inventory grouped by product, with inline COGS editing
+    ├── InventoryPanel.tsx      # inventory grouped by product, with inline COGS editing
+    ├── OtherBalancesPanel.tsx  # ad-hoc receivables/payables list with add/delete
     └── RefreshButton.tsx
 ```
 

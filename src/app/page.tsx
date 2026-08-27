@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import InventoryPanel from "@/components/InventoryPanel";
 import MetricCard from "@/components/MetricCard";
+import OtherBalancesPanel from "@/components/OtherBalancesPanel";
 import { Panel, Row } from "@/components/Panel";
 import RefreshButton from "@/components/RefreshButton";
 import type { OverviewResponse } from "@/lib/types";
@@ -78,6 +79,36 @@ export default function Home() {
     [loadOverview],
   );
 
+  const handleAddOtherBalance = useCallback(
+    async (name: string, amount: number, note: string) => {
+      const response = await fetch("/api/other-balances", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, amount, note: note || null }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to add entry (status ${response.status})`);
+      }
+      await loadOverview();
+    },
+    [loadOverview],
+  );
+
+  const handleDeleteOtherBalance = useCallback(
+    async (id: string) => {
+      const response = await fetch("/api/other-balances", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to delete entry (status ${response.status})`);
+      }
+      await loadOverview();
+    },
+    [loadOverview],
+  );
+
   // Each source can fail independently — surface the failure next to the metric it affects,
   // rather than blocking the whole dashboard, so a working source is still visible.
   const findError = (keyword: string) =>
@@ -139,7 +170,7 @@ export default function Home() {
               <MetricCard
                 label="Net Position"
                 value={formatCurrency(data.totals.netPosition)}
-                hint="Cash + Inventory − Liabilities"
+                hint="Cash + Inventory + Other Balances − Liabilities"
                 tone={data.totals.netPosition >= 0 ? "positive" : "negative"}
               />
             </div>
@@ -202,6 +233,12 @@ export default function Home() {
                     ))
                 )}
               </Panel>
+
+              <OtherBalancesPanel
+                items={data.otherBalances}
+                onAdd={handleAddOtherBalance}
+                onDelete={handleDeleteOtherBalance}
+              />
             </div>
           </>
         ) : null}
