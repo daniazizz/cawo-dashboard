@@ -39,9 +39,9 @@ function formatCompact(value: number) {
 export default function CapitalEvolutionChart({ points }: { points: HistoryPoint[] }) {
   if (points.length === 0) {
     return (
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-700">Net Position Evolution</h2>
-        <p className="mt-2 text-sm text-zinc-400">
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-200">Net Position Evolution</h2>
+        <p className="mt-2 text-sm text-zinc-500">
           Not enough history yet — snapshots accumulate each time the dashboard syncs.
         </p>
       </div>
@@ -58,15 +58,15 @@ export default function CapitalEvolutionChart({ points }: { points: HistoryPoint
   const latest = points[points.length - 1];
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-sm">
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-700">Net Position Evolution</h2>
-          <p className="text-xs text-zinc-400">Daily snapshot history · EUR</p>
+          <h2 className="text-sm font-semibold text-zinc-200">Net Position Evolution</h2>
+          <p className="text-xs text-zinc-500">Daily snapshot history · EUR</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-zinc-400">Latest Net Position</p>
-          <p className="text-lg font-semibold tabular-nums text-zinc-900">
+          <p className="text-xs text-zinc-500">Latest Net Position</p>
+          <p className="text-lg font-semibold tabular-nums text-zinc-50">
             {currencyFormatter.format(latest.netPosition)}
           </p>
         </div>
@@ -74,24 +74,31 @@ export default function CapitalEvolutionChart({ points }: { points: HistoryPoint
 
       <ResponsiveContainer width="100%" height={320}>
         <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
-          <XAxis dataKey="date" tick={{ fontSize: 12 }} tickMargin={8} />
-          <YAxis tick={{ fontSize: 12 }} tickFormatter={formatCompact} width={70} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+          <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#a1a1aa" }} tickMargin={8} />
+          <YAxis
+            tick={{ fontSize: 12, fill: "#a1a1aa" }}
+            tickFormatter={formatCompact}
+            width={70}
+          />
           <Tooltip
+            contentStyle={{ backgroundColor: "#18181b", border: "1px solid #3f3f46" }}
+            labelStyle={{ color: "#e4e4e7" }}
+            itemStyle={{ color: "#e4e4e7" }}
             formatter={(value) =>
               currencyFormatter.format(typeof value === "number" ? value : Number(value))
             }
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Legend wrapperStyle={{ fontSize: 12, color: "#a1a1aa" }} />
           <Bar dataKey="cash" name="Cash" stackId="composition" fill="#f97316" />
           <Bar dataKey="inventory" name="Inventory" stackId="composition" fill="#22c55e" />
           <Bar dataKey="otherBalances" name="Other Balances" stackId="composition" fill="#eab308" />
-          <Bar dataKey="liabilitiesNegative" name="Liabilities" stackId="composition" fill="#8b5cf6" />
+          <Bar dataKey="liabilitiesNegative" name="Liabilities" stackId="composition" fill="#a78bfa" />
           <Line
             type="monotone"
             dataKey="netPosition"
             name="Net Position"
-            stroke="#18181b"
+            stroke="#f4f4f5"
             strokeWidth={2}
             dot={{ r: 3 }}
           />
@@ -110,9 +117,9 @@ export default function CapitalEvolutionChart({ points }: { points: HistoryPoint
 
 function SummaryCell({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md bg-zinc-50 px-3 py-2 text-center">
-      <p className="text-xs text-zinc-400">{label}</p>
-      <p className="text-sm font-medium tabular-nums text-zinc-900">
+    <div className="rounded-md bg-zinc-800 px-3 py-2 text-center">
+      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="text-sm font-medium tabular-nums text-zinc-50">
         {currencyFormatter.format(value)}
       </p>
     </div>

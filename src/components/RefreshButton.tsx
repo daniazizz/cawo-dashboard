@@ -27,7 +27,7 @@ export default function RefreshButton({
     <button
       onClick={handleClick}
       disabled={secondsLeft > 0}
-      className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+      className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
     >
       {secondsLeft > 0 ? `Refresh (${secondsLeft}s)` : "Refresh"}
     </button>

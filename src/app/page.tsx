@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import CapitalEvolutionChart from "@/components/CapitalEvolutionChart";
 import InventoryPanel from "@/components/InventoryPanel";
@@ -145,30 +146,34 @@ export default function Home() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-950">
       <div className="mx-auto max-w-5xl px-6 py-10">
         <header className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-zinc-900">
-              Finance Dashboard
-            </h1>
-            {data && (
-              <p className="mt-1 text-xs text-zinc-400">
-                Last updated {new Date(data.generatedAt).toLocaleString()}
-              </p>
-            )}
+          <div className="flex items-center gap-3">
+            <Image src="/cawo-logo.svg" alt="CAWO" width={76} height={18} />
+            <div className="h-6 w-px bg-zinc-800" />
+            <div>
+              <h1 className="text-xl font-semibold text-zinc-50">
+                Finance Dashboard
+              </h1>
+              {data && (
+                <p className="mt-1 text-xs text-zinc-500">
+                  Last updated {new Date(data.generatedAt).toLocaleString()}
+                </p>
+              )}
+            </div>
           </div>
           <RefreshButton onRefresh={loadOverview} />
         </header>
 
         {errorMessage && (
-          <div className="mb-6 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mb-6 rounded-md border border-rose-900 bg-rose-950 px-4 py-3 text-sm text-rose-300">
             {errorMessage}
           </div>
         )}
 
         {isLoading && !data ? (
-          <p className="text-sm text-zinc-500">Loading…</p>
+          <p className="text-sm text-zinc-400">Loading…</p>
         ) : data ? (
           <>
             <div className="mb-8">

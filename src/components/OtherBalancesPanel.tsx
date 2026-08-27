@@ -50,28 +50,28 @@ export default function OtherBalancesPanel({
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white shadow-sm">
-      <div className="border-b border-zinc-200 px-5 py-3">
-        <h2 className="text-sm font-semibold text-zinc-700">Other Balances</h2>
-        <p className="mt-0.5 text-xs text-zinc-400">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm">
+      <div className="border-b border-zinc-800 px-5 py-3">
+        <h2 className="text-sm font-semibold text-zinc-200">Other Balances</h2>
+        <p className="mt-0.5 text-xs text-zinc-500">
           Ad-hoc money owed — positive = owed to CAWO, negative = CAWO owes
         </p>
       </div>
 
-      <div className="divide-y divide-zinc-100">
+      <div className="divide-y divide-zinc-800">
         {items.length === 0 ? (
-          <p className="px-5 py-3 text-sm text-zinc-400">No entries yet</p>
+          <p className="px-5 py-3 text-sm text-zinc-500">No entries yet</p>
         ) : (
           items.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-2 px-5 py-3">
               <div>
-                <p className="text-sm text-zinc-700">{item.name}</p>
-                {item.note && <p className="text-xs text-zinc-400">{item.note}</p>}
+                <p className="text-sm text-zinc-300">{item.name}</p>
+                {item.note && <p className="text-xs text-zinc-500">{item.note}</p>}
               </div>
               <div className="flex items-center gap-2">
                 <p
                   className={`text-sm font-medium tabular-nums ${
-                    item.amount >= 0 ? "text-emerald-600" : "text-rose-600"
+                    item.amount >= 0 ? "text-emerald-400" : "text-rose-400"
                   }`}
                 >
                   {item.amount >= 0 ? "+" : ""}
@@ -81,7 +81,7 @@ export default function OtherBalancesPanel({
                   onClick={() => handleDelete(item.id)}
                   disabled={deletingId === item.id}
                   title="Remove entry"
-                  className="text-xs text-zinc-400 hover:text-rose-600 disabled:opacity-50"
+                  className="text-xs text-zinc-500 hover:text-rose-400 disabled:opacity-50"
                 >
                   ✕
                 </button>
@@ -91,13 +91,13 @@ export default function OtherBalancesPanel({
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2 border-t border-zinc-200 px-5 py-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2 border-t border-zinc-800 px-5 py-3">
         <div className="flex gap-2">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Who / what (e.g. Client X invoice)"
-            className="flex-1 rounded border border-zinc-300 px-2 py-1 text-sm focus:border-zinc-500 focus:outline-none"
+            className="flex-1 rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
           />
           <input
             value={amount}
@@ -106,7 +106,7 @@ export default function OtherBalancesPanel({
             step="0.01"
             placeholder="+/- amount"
             title="Positive = owed to CAWO, negative = CAWO owes"
-            className="w-28 rounded border border-zinc-300 px-2 py-1 text-sm tabular-nums focus:border-zinc-500 focus:outline-none"
+            className="w-28 rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-sm tabular-nums text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
           />
         </div>
         <div className="flex gap-2">
@@ -114,12 +114,12 @@ export default function OtherBalancesPanel({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (optional)"
-            className="flex-1 rounded border border-zinc-300 px-2 py-1 text-xs focus:border-zinc-500 focus:outline-none"
+            className="flex-1 rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
           />
           <button
             type="submit"
             disabled={isSubmitting || name.trim() === "" || amount.trim() === ""}
-            className="rounded bg-zinc-900 px-3 py-1 text-xs font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
+            className="rounded bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
           >
             Add
           </button>
