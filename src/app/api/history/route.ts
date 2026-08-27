@@ -33,23 +33,24 @@ async function buildHistoryResponse(request: Request) {
   const debug = new URL(request.url).searchParams.has("debug");
   const since = new Date();
   since.setDate(since.getDate() - 90);
+  const sinceIso = since.toISOString();
 
-  const [cashRows, inventoryRows, liabilityRows, costRows, otherBalanceRows] = await Promise.all([
-    supabaseAdmin
-      .from("cash_snapshots")
-      .select("source, currency, amount, captured_at")
-      .gte("captured_at", since.toISOString())
-      .order("captured_at", { ascending: true }),
-    supabaseAdmin
-      .from("inventory_snapshots")
-      .select("sku, product_title, quantity, captured_at")
-      .gte("captured_at", since.toISOString())
-      .order("captured_at", { ascending: true }),
-    supabaseAdmin
-      .from("liabilities")
-      .select("name, amount, captured_at")
-      .gte("captured_at", since.toISOString())
-      .order("captured_at", { ascending: true }),
+  const [cash, inventory, liabilities, costRows, otherBalanceRows] = await Promise.all([
+    fetchAllRows<{ source: string; currency: string; amount: number; captured_at: string }>(
+      "cash_snapshots",
+      "source, currency, amount, captured_at",
+      sinceIso,
+    ),
+    fetchAllRows<{ sku: string; product_title: string; quantity: number; captured_at: string }>(
+      "inventory_snapshots",
+      "sku, product_title, quantity, captured_at",
+      sinceIso,
+    ),
+    fetchAllRows<{ name: string; amount: number; captured_at: string }>(
+      "liabilities",
+      "name, amount, captured_at",
+      sinceIso,
+    ),
     supabaseAdmin.from("product_costs").select("product_title, unit_cost"),
     supabaseAdmin.from("other_balances").select("amount"),
   ]);
@@ -63,23 +64,12 @@ async function buildHistoryResponse(request: Request) {
     0,
   );
 
-  const cash = cashRows.data ?? [];
-  const inventory = inventoryRows.data ?? [];
-  const liabilities = liabilityRows.data ?? [];
-
   const debugInfo = debug
     ? {
-        cashRowsError: cashRows.error,
-        inventoryRowsError: inventoryRows.error,
-        liabilityRowsError: liabilityRows.error,
-        costRowsError: costRows.error,
-        otherBalanceRowsError: otherBalanceRows.error,
         cashCount: cash.length,
         inventoryCount: inventory.length,
         liabilitiesCount: liabilities.length,
         costCount: costRows.data?.length ?? 0,
-        sampleInventoryTitle: inventory[0]?.product_title,
-        sampleCostKeys: (costRows.data ?? []).slice(0, 3).map((r) => r.product_title),
       }
     : undefined;
 
@@ -161,4 +151,47 @@ function dayKey(isoTimestamp: string): string {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+// PostgREST caps a single request at 1000 rows, and snapshot tables grow past that within
+// days once cron + manual refreshes accumulate — so page through with .range() to get
+// everything in the window. Also retries once on the transient PGRST303 "JWT issued in the
+// future" clock-skew error Supabase occasionally returns under concurrent requests.
+async function fetchAllRows<T>(
+  table: string,
+  columns: string,
+  sinceIso: string,
+): Promise<T[]> {
+  const pageSize = 1000;
+  const rows: T[] = [];
+  let from = 0;
+
+  while (true) {
+    let response = await supabaseAdmin
+      .from(table)
+      .select(columns)
+      .gte("captured_at", sinceIso)
+      .order("captured_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (response.error?.code === "PGRST303") {
+      response = await supabaseAdmin
+        .from(table)
+        .select(columns)
+        .gte("captured_at", sinceIso)
+        .order("captured_at", { ascending: true })
+        .range(from, from + pageSize - 1);
+    }
+
+    if (response.error) {
+      throw new Error(`Failed to read ${table}: ${response.error.message}`);
+    }
+
+    const page = (response.data ?? []) as T[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return rows;
 }
