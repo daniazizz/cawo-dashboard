@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { fetchWiseBalances, fetchRatesToEur } from "@/lib/integrations/wise";
-import { fetchShopifyInventory, fetchShopifyPendingPayout } from "@/lib/integrations/shopify";
-import { fetch3plLiability } from "@/lib/integrations/sheets";
+import { fetchRatesToEur } from "@/lib/integrations/wise";
+import { syncAllSources } from "@/lib/sync";
 import type {
   CashBalance,
   InventoryItem,
@@ -26,86 +25,9 @@ export async function GET() {
 }
 
 async function buildOverviewResponse() {
-  const errors: string[] = [];
-  const capturedAt = new Date().toISOString();
-
-  const [wiseResult, shopifyResult, sheetsResult, payoutResult] = await Promise.allSettled([
-    fetchWiseBalances(),
-    fetchShopifyInventory(),
-    fetch3plLiability(),
-    fetchShopifyPendingPayout(),
-  ]);
-
-  if (wiseResult.status === "fulfilled" && wiseResult.value.length > 0) {
-    const rows = wiseResult.value.map((balance) => ({
-      source: balance.source,
-      currency: balance.currency,
-      amount: balance.amount,
-      captured_at: capturedAt,
-    }));
-    const { error } = await supabaseAdmin.from("cash_snapshots").insert(rows);
-    if (error) errors.push(`Supabase cash insert failed: ${error.message}`);
-  } else if (
-    wiseResult.status === "fulfilled" &&
-    wiseResult.value.length === 0
-  ) {
-    errors.push(
-      "Wise returned no balances for this profile — check WISE_PROFILE_ID points to a profile with an open balance",
-    );
-  } else if (wiseResult.status === "rejected") {
-    errors.push(
-      `Wise fetch failed: ${wiseResult.reason?.message ?? wiseResult.reason}`,
-    );
-  }
-
-  if (shopifyResult.status === "fulfilled" && shopifyResult.value.length > 0) {
-    const rows = shopifyResult.value.map((item) => ({
-      sku: item.sku,
-      product_title: item.productTitle,
-      quantity: item.quantity,
-      unit_cost: null,
-      captured_at: capturedAt,
-    }));
-    const { error } = await supabaseAdmin
-      .from("inventory_snapshots")
-      .insert(rows);
-    if (error)
-      errors.push(`Supabase inventory insert failed: ${error.message}`);
-  } else if (shopifyResult.status === "rejected") {
-    errors.push(
-      `Shopify fetch failed: ${shopifyResult.reason?.message ?? shopifyResult.reason}`,
-    );
-  }
-
-  if (sheetsResult.status === "fulfilled") {
-    const { error } = await supabaseAdmin.from("liabilities").insert({
-      name: sheetsResult.value.name,
-      amount: sheetsResult.value.amount,
-      source: sheetsResult.value.source,
-      captured_at: capturedAt,
-    });
-    if (error)
-      errors.push(`Supabase liability insert failed: ${error.message}`);
-  } else {
-    errors.push(
-      `Sheets fetch failed: ${sheetsResult.reason?.message ?? sheetsResult.reason}`,
-    );
-  }
-
-  if (payoutResult.status === "fulfilled" && payoutResult.value.length > 0) {
-    const rows = payoutResult.value.map((payout) => ({
-      source: payout.source,
-      currency: payout.currency,
-      amount: payout.amount,
-      captured_at: capturedAt,
-    }));
-    const { error } = await supabaseAdmin.from("cash_snapshots").insert(rows);
-    if (error) errors.push(`Supabase payout insert failed: ${error.message}`);
-  } else if (payoutResult.status === "rejected") {
-    errors.push(
-      `Shopify payout fetch failed: ${payoutResult.reason?.message ?? payoutResult.reason}`,
-    );
-  }
+  const syncResult = await syncAllSources();
+  const errors = [...syncResult.errors];
+  const capturedAt = syncResult.capturedAt;
 
   const [cash, inventory, liabilities, recurringCosts, otherBalances] = await Promise.all([
     getLatestCash(),

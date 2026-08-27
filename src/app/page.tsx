@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import CapitalEvolutionChart from "@/components/CapitalEvolutionChart";
 import InventoryPanel from "@/components/InventoryPanel";
 import MetricCard from "@/components/MetricCard";
 import OtherBalancesPanel from "@/components/OtherBalancesPanel";
@@ -34,8 +35,18 @@ function sourceLabel(source: string) {
   return SOURCE_LABELS[source] ?? source;
 }
 
+interface HistoryPoint {
+  date: string;
+  cash: number;
+  inventory: number;
+  liabilities: number;
+  otherBalances: number;
+  netPosition: number;
+}
+
 export default function Home() {
   const [data, setData] = useState<OverviewResponse | null>(null);
+  const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -43,12 +54,19 @@ export default function Home() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const response = await fetch("/api/overview");
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+      const [overviewResponse, historyResponse] = await Promise.all([
+        fetch("/api/overview"),
+        fetch("/api/history"),
+      ]);
+      if (!overviewResponse.ok) {
+        throw new Error(`Request failed with status ${overviewResponse.status}`);
       }
-      const json: OverviewResponse = await response.json();
+      const json: OverviewResponse = await overviewResponse.json();
       setData(json);
+      if (historyResponse.ok) {
+        const historyJson: { points: HistoryPoint[] } = await historyResponse.json();
+        setHistory(historyJson.points);
+      }
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "Failed to load dashboard data",
@@ -193,6 +211,10 @@ export default function Home() {
                 hint="Cash + Inventory + Other Balances − Liabilities"
                 tone={data.totals.netPosition >= 0 ? "positive" : "negative"}
               />
+            </div>
+
+            <div className="mb-8">
+              <CapitalEvolutionChart points={history} />
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
